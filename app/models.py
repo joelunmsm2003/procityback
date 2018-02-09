@@ -31,6 +31,7 @@ class Categoria(models.Model):
     photo = models.FileField(upload_to='static',blank=True, null=True)
     orden = models.IntegerField(blank=True, null=True)
     icono = models.FileField(upload_to='static',blank=True, null=True)
+    icono_seleccionado = models.FileField(upload_to='static',blank=True, null=True)
 
     class Meta:
         managed = True
@@ -44,6 +45,8 @@ class Subcategoria(models.Model):
     categoria = models.ForeignKey(Categoria,blank=True, null=True)
     precio = models.FloatField(blank=True, null=True)
     descripcion = models.TextField(max_length=1000,blank=True, null=True)
+    photo = models.FileField(upload_to='static',blank=True, null=True)
+    orden = models.IntegerField(blank=True, null=True)
 
     class Meta:
         managed = True
@@ -76,6 +79,17 @@ class Distrito(models.Model):
     def __unicode__(self):
         return self.nombre
 
+class Tiponotificacion(models.Model):
+    nombre = models.CharField(max_length=1000,blank=True, null=True)
+    plantilla=models.CharField(max_length=1000,blank=True, null=True)
+
+    class Meta:
+        managed = True
+        verbose_name = 'Tipo Notificacion'
+
+    def __unicode__(self):
+        return self.nombre
+
 
 class Cliente(models.Model):
     nombre = models.CharField(max_length=1000,blank=True, null=True)
@@ -94,7 +108,24 @@ class Cliente(models.Model):
         verbose_name = 'Cliente'
 
     def __unicode__(self):
+
+        if self.nombre:
+            return self.nombre
+        else:
+            return 'No tiene nombre'
+
+
+class Estadosocia(models.Model):
+
+    nombre = models.CharField(max_length=1000,blank=True, null=True)
+
+    class Meta:
+        managed = True
+        verbose_name = 'Estado de Socia'
+
+    def __unicode__(self):
         return self.nombre
+
 
 
 class Socia(models.Model):
@@ -103,7 +134,7 @@ class Socia(models.Model):
     apellido = models.CharField(max_length=1000, blank=True, null=True)
     dni = models.IntegerField(blank=True, null=True)
     telefono = models.IntegerField(blank=True, null=True)
-    correo = models.CharField(max_length=1000, blank=True, null=True)
+    email = models.CharField(max_length=1000, blank=True, null=True)
     direccion = models.CharField(max_length=1000, blank=True, null=True)
     distrito = models.ForeignKey(Distrito, models.DO_NOTHING, db_column='distrito', blank=True, null=True)
     referencia = models.CharField(max_length=1000, blank=True, null=True)
@@ -111,14 +142,19 @@ class Socia(models.Model):
     photo = models.FileField(upload_to='static',blank=True, null=True)
     ncuenta = models.CharField(max_length=1000, blank=True, null=True)
     numero_notificacion = models.CharField(max_length=1000, blank=True, null=True)
- 
+    estado_socia = models.ForeignKey(Estadosocia, models.DO_NOTHING, db_column='estado_socia', blank=True, null=True)
+
     class Meta:
         managed = True
         db_table = 'socia'
         verbose_name = 'Socia'
 
     def __unicode__(self):
-        return self.nombre
+
+        if self.nombre:
+            return self.nombre
+        else:
+            return 'No tiene socia'
 
 
    
@@ -223,6 +259,7 @@ class Servicio(models.Model):
     latitud = models.CharField(max_length=1000,blank=True, null=True)
     longitud = models.CharField(max_length=1000,blank=True, null=True)
     estado = models.ForeignKey(Estado,max_length=1000,blank=True, null=True)
+    referencia = models.CharField(max_length=1000,blank=True, null=True)
 
     
 
@@ -230,15 +267,16 @@ class Servicio(models.Model):
     class Meta:
         managed = True
         verbose_name = 'Servicio'
+        ordering = ['-id',]
 
     def __unicode__(self):
 
-        if self.socia:
+        return str(self.id)
+            #return 'hshs'
+         
+        # else:
 
-            return str(self.id)+'-'+self.socia.nombre+'-'+self.cliente.nombre
-        else:
-
-            return str(self.id)+'-'+'Sin asignar-'+self.cliente.nombre
+        #     return str(self.id)+'-'+'Sin asignar-'+self.cliente.nombre
 
 
 class Serviciopedido(models.Model):
@@ -253,11 +291,16 @@ class Serviciopedido(models.Model):
     def __unicode__(self):
         return self.subcategoria.nombre
 
+
+
+
 class Notificacion(models.Model):
 
     fecha = models.DateTimeField(blank=True, null=True)
     descripcion = models.CharField(max_length=1000,blank=True, null=True)
     servicio = models.ForeignKey(Servicio,blank=True, null=True)
+    cliente = models.ForeignKey(Cliente,max_length=1000,blank=True, null=True)
+    tipo_notificacion = models.ForeignKey(Tiponotificacion,max_length=1000,blank=True, null=True)
 
     class Meta:
         managed = True

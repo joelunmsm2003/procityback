@@ -3,7 +3,7 @@ from django.conf.urls import patterns, include, url
 
 from rest_framework_jwt.views import obtain_jwt_token, refresh_jwt_token
 from app.views import *
-
+from django.core.urlresolvers import reverse
 from django.contrib import admin
 
 
@@ -23,7 +23,7 @@ urlpatterns = [
     url(r'^buscasocia/(\d+)',  Buscasocia.as_view()),
     url(r'^guardanotificacion/', Guardanotificacion.as_view()),
     url(r'^aceptarservicio/', Aceptarservicio.as_view()),
-    url(r'^miservicios/(\d+)', Miservicios.as_view()),
+    url(r'^miservicios/', Miservicios.as_view()),
     url(r'^miserviciossocias/(\d+)', Miserviciossocias.as_view()),
     url(r'^sacauser/', Sacauser.as_view()),
     url(r'^sacasocia/', Sacasocia.as_view()),
@@ -36,6 +36,9 @@ urlpatterns = [
     url(r'^prueba/', 'app.views.prueba'),
     url(r'^registro/', 'app.views.registro'),
     url(r'^ultimoservicio/', Ultimoservicio.as_view()),
+    url(r'^nuevasocia/', 'app.views.nuevasocia'),
+    url(r'^envianotificacion/(\w+)/', 'app.views.envianotificacion'),
+    url(r'^carganoti/(\w+)/(\d+)', 'app.views.carganoti'),
 
 
     

@@ -42,7 +42,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.auth.hashers',
-    'rest_framework',
     'corsheaders',
     'app'
 ]
@@ -134,6 +133,19 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+# EMAIL_USE_TLS = True
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_HOST_USER = 'aseguratuauto@hermes.pe'
+# EMAIL_HOST_PASSWORD = 'hermes269999'
+# EMAIL_PORT = 587
+
+
+EMAIL_HOST = 'mail.hermes.pe'
+EMAIL_HOST_USER = 'cotiza@hermes.pe'
+EMAIL_HOST_PASSWORD = 'cotizahermes'
+EMAIL_PORT = 25
+EMAIL_USE_TLS = True
 
 
 # Static files (CSS, JavaScript, Images)

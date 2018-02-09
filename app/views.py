@@ -50,6 +50,7 @@ import random
 from django.db.models import Count,Sum
 from PIL import Image
 from resizeimage import resizeimage
+from django.core.mail import EmailMultiAlternatives
 
 import operator
 from django.db.models import Q
@@ -57,6 +58,60 @@ from django.db.models import Q
 import datetime
 import requests
 import json
+
+def resize_and_crop(img_path, modified_path, size, crop_type='top'):
+    """
+    Resize and crop an image to fit the specified size.
+    args:
+        img_path: path for the image to resize.
+        modified_path: path to store the modified image.
+        size: `(width, height)` tuple.
+        crop_type: can be 'top', 'middle' or 'bottom', depending on this
+            value, the image will cropped getting the 'top/left', 'midle' or
+            'bottom/rigth' of the image to fit the size.
+    raises:
+        Exception: if can not open the file in img_path of there is problems
+            to save the image.
+        ValueError: if an invalid `crop_type` is provided.
+    """
+    # If height is higher we resize vertically, if not we resize horizontally
+    img = Image.open(img_path)
+    # Get current and desired ratio for the images
+    img_ratio = img.size[0] / float(img.size[1])
+    ratio = size[0] / float(size[1])
+    #The image is scaled/cropped vertically or horizontally depending on the ratio
+    if ratio > img_ratio:
+        img = img.resize((size[0], size[0] * img.size[1] / img.size[0]),
+                Image.ANTIALIAS)
+        # Crop in the top, middle or bottom
+        if crop_type == 'top':
+            box = (0, 0, img.size[0], size[1])
+        elif crop_type == 'middle':
+            box = (0, (img.size[1] - size[1]) / 2, img.size[0], (img.size[1] + size[1]) / 2)
+        elif crop_type == 'bottom':
+            box = (0, img.size[1] - size[1], img.size[0], img.size[1])
+        else :
+            raise ValueError('ERROR: invalid value for crop_type')
+        img = img.crop(box)
+    elif ratio < img_ratio:
+        img = img.resize((size[1] * img.size[0] / img.size[1], size[1]),
+                Image.ANTIALIAS)
+        # Crop in the top, middle or bottom
+        if crop_type == 'top':
+            box = (0, 0, size[0], img.size[1])
+        elif crop_type == 'middle':
+            box = ((img.size[0] - size[0]) / 2, 0, (img.size[0] + size[0]) / 2, img.size[1])
+        elif crop_type == 'bottom':
+            box = (img.size[0] - size[0], 0, img.size[0], img.size[1])
+        else :
+            raise ValueError('ERROR: invalid value for crop_type')
+        img = img.crop(box)
+    else :
+        img = img.resize((size[0], size[1]),
+                Image.ANTIALIAS)
+        # If the scale is the same, we do not need to crop
+    img.save(modified_path)
+
 
 
 @csrf_exempt
@@ -78,18 +133,58 @@ def registro(request):
 	password= json.loads(request.body)['password']
 
 
+	if User.objects.filter(username=username).count()>0:
+
+		c= simplejson.dumps(0)
+
+		return HttpResponse(c, content_type="application/json")
+
+
 
 	User.objects.create_user(username, username, password)
 
 	id_user = User.objects.all().values('id').order_by('-id')[0]['id']
 
+	u = User.objects.get(id=id_user)
+	u.first_name= json.loads(request.body)['nombre']
+
+	u.save()
+
+
+	group = Group.objects.get(name='Cliente')
+	u.groups.add(group)
+
+
+
 
 	Cliente(user_id=id_user,email=username).save()
 	
-	authenticate(username=username, password=password)
+	user = authenticate(username=username, password=password)
+	login(request, user)
+
+
+	#Agrega el ID Device
+
+
+	archivo = open("/home/dd.txt", 'r') 
+	i=0
+	for linea in archivo.readlines():
+		i=i+1
+		if int(i)==22:     
+			t=linea
+
+
+	player = json.loads(t)['players']
+
+
+	for p in player:
 
 
 
+		header = {"Content-Type": "application/json; charset=utf-8","Authorization": "Basic OGQyNTllMmUtMmY2Ny00ZGQxLWEzNWMtMjM5NTdlNjM0ZTc3"}
+		payload = {"app_id": "6d06ccb5-60c3-4a76-83d5-9363fbf6b40a","include_player_ids": [p['id']],"contents": {"en": "Bienvenida a My Look Xpress"},"data":{'codigo': p['id']}}
+		req = requests.post("https://onesignal.com/api/v1/notifications", headers=header, data=json.dumps(payload))
+		print(req.status_code, req.reason)
 
 
 	c= simplejson.dumps('ok')
@@ -110,6 +205,34 @@ def smsrecibidos(request):
     Smsrecibidos(text=text,when=when,sender=sender,receiver=receiver).save()
 
     return HttpResponse('OK', content_type="application/json")
+
+
+
+@csrf_exempt
+def carganoti(request,perfil,id_cliente):
+
+
+	archivo = open("/home/dd.txt", 'r') 
+	i=0
+	for linea in archivo.readlines():
+		i=i+1
+		if int(i)==22:     
+			t=linea
+
+
+	player = json.loads(t)['players']
+
+
+	for p in player:
+
+		header = {"Content-Type": "application/json; charset=utf-8","Authorization": "Basic OGQyNTllMmUtMmY2Ny00ZGQxLWEzNWMtMjM5NTdlNjM0ZTc3"}
+		payload = {"app_id": "6d06ccb5-60c3-4a76-83d5-9363fbf6b40a","include_player_ids": [p['id']],"contents": {"en": "Bienvenida a My Look Xpress"},"data":{'codigo': p['id']}}
+		req = requests.post("https://onesignal.com/api/v1/notifications", headers=header, data=json.dumps(payload))
+		print(req.status_code, req.reason)
+
+	a= simplejson.dumps('OK')
+		
+	return HttpResponse(a, content_type="application/json")
 
 class Uploadphoto(JSONWebTokenAuthMixin, View):
 
@@ -166,6 +289,26 @@ def ValuesQuerySetToDict(vqs):
 	return [item for item in vqs]
 
 
+## Agrega telefonos
+def envianotificacion(request,tipo):
+
+	if tipo=='Compartir':
+
+
+
+		plantilla = Tiponotificacion.objects.get(nombre=tipo).plantilla
+		
+		c= simplejson.dumps(plantilla)
+
+		print 'entre a compartir'
+
+		return HttpResponse(c, content_type="application/json")
+
+	else:
+
+
+		return HttpResponse(simplejson.dumps('u'), content_type="application/json")
+
 
 class Sacauser(JSONWebTokenAuthMixin, View):
 
@@ -196,6 +339,7 @@ class Sacasocia(JSONWebTokenAuthMixin, View):
 
 		return HttpResponse(c, content_type="application/json")
 
+
 class Miperfil(JSONWebTokenAuthMixin, View):
 
 	
@@ -209,25 +353,28 @@ class Miperfil(JSONWebTokenAuthMixin, View):
 
 		if grupos=='Socia':
 
-			c=Socia.objects.filter(user_id=request.user.id).values('id','nombre','apellido','photo','user__groups__name','telefono','direccion','distrito__nombre')
+			c=Socia.objects.filter(user_id=request.user.id).values('id','nombre','apellido','photo','user__groups__name','telefono','direccion','distrito__nombre','user__first_name','email')
 		
 
 		if grupos=='Cliente':
 
-			c=Cliente.objects.filter(user_id=request.user.id).values('id','nombre','apellido','photo','user__groups__name','email','telefono','direccion','distrito__nombre')
+			c=Cliente.objects.filter(user_id=request.user.id).values('id','nombre','apellido','photo','user__groups__name','email','telefono','direccion','distrito__nombre','user__first_name')
 		
 		c= simplejson.dumps(ValuesQuerySetToDict(c))
 
 		return HttpResponse(c, content_type="application/json")
 
 
+
 class Miservicios(JSONWebTokenAuthMixin, View):
 
 	
 	## Agrega telefonos
-	def get(self, request,cliente):
+	def get(self, request):
 
-		c= Servicio.objects.filter(cliente_id=cliente).values('id','cliente__nombre','dia__nombre','cliente__photo','socia__photo','socia__nombre','socia__nombre').order_by('-id')
+		id_cliente=Cliente.objects.get(user_id=request.user.id).id
+
+		c= Servicio.objects.filter(cliente_id=id_cliente).values('id','cliente__nombre','dia__nombre','cliente__photo','socia__photo','socia__nombre','socia__nombre').order_by('-id')
 
 		fmt = '%H:%M'
 
@@ -290,7 +437,7 @@ class Detalleservicio(JSONWebTokenAuthMixin, View):
 	## Agrega telefonos
 	def get(self, request,servicio):
 
-		c= Servicio.objects.filter(id=servicio).values('id','cliente__nombre','dia__nombre','cliente__photo','socia__photo','socia__nombre','socia__nombre').order_by('-id')
+		c= Servicio.objects.filter(id=servicio).values('id','cliente__nombre','dia__nombre','cliente__photo','socia__photo','socia__nombre','socia__nombre','latitud','longitud').order_by('-id')
 
 		fmt = '%H:%M'
 
@@ -352,6 +499,8 @@ class Buscasocia(JSONWebTokenAuthMixin, View):
 	#Crea nuevo cliente
 	def post(self,request,id_socia):
 
+		print 'Buscando socias....'
+
 		data = json.loads(request.body)
 
 
@@ -359,7 +508,9 @@ class Buscasocia(JSONWebTokenAuthMixin, View):
 
 		for p in data['pedido']:
 
-			pedidos.append(p['nombre'])
+			pedidos.append(p['id'])
+
+		print 'Pedidos..',pedidos
 
 		latitud = data['ubicacion']['lat']
 
@@ -367,7 +518,7 @@ class Buscasocia(JSONWebTokenAuthMixin, View):
 
 		reservado = str(data['hora'])
 
-		print 'hora',reservado
+		referencia = str(data['referencia'])
 
 		reservado = datetime.datetime.strptime(reservado, '%H:%M')
 
@@ -375,11 +526,11 @@ class Buscasocia(JSONWebTokenAuthMixin, View):
 
 		dia = data['dia']
 
-		print 'dia',dia
+
 
 		xx=datetime.datetime.strptime(str(data['dia'])[0:10], '%Y-%m-%d')
 
-		print 'xx',xx
+
 
 		#ubicacion = data['reserva']['ubicacion']
 
@@ -420,15 +571,33 @@ class Buscasocia(JSONWebTokenAuthMixin, View):
 
 		cli = Cliente.objects.get(user_id=request.user.id).id
 
-		query = reduce(operator.and_, (Q(subcategoria__nombre__contains = item) for item in pedidos))
+		query = reduce(operator.and_, (Q(subcategoria__id__contains = item) for item in pedidos))
 		
 		#{u'pedido': [{u'descripcion': u'ghghg<br> Costo: S/. 2.0', u'nombre': u'Manicure Express', u'precio': 2, u'id': 1, u'check': True}, {u'descripcion': u'<br> Costo: S/. 2.0', u'nombre': u'Manicure Spa', u'precio': 2, u'id': 2, u'check': True}]}
 
 		sociascate=Sociasubcategoria.objects.filter(query)
 
-		Servicio(dia_id=ndia,fecha_inicio=hora_reserva,cliente_id=cli,fecha=xx,latitud=latitud,longitud=longitud,estado_id=1).save()
+		print 'Nuemros de Socias..',sociascate.count()
+
+		Servicio(socia_id=1,referencia=referencia,dia_id=ndia,fecha_inicio=hora_reserva,cliente_id=cli,fecha=xx,latitud=latitud,longitud=longitud,estado_id=1).save()
 
 		id_serv = Servicio.objects.all().values('id').order_by('-id')[0]['id']
+
+		if sociascate.count()==0:
+
+
+			subject, from_email, to = 'My Look Express', 'cotiza@hermes.pe', 'joelunmsm@gmail.com'
+			
+			text_content = 'Una cliente nueva no encontro una socia, porfavor apoyarle, en el siguiente link detalle su informacion: '
+
+			text_content= text_content+'http://estokealo.com:8000/admin/app/serviciopedido/?servicio__id__exact='+str(id_serv)
+			
+			msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+
+
+			msg.send()
+
+
 
 		##Guarda pedidos subcategorias
 
@@ -439,6 +608,9 @@ class Buscasocia(JSONWebTokenAuthMixin, View):
 
 		for s in sociascate:
 
+
+			print 'Socia-Categoria',s
+
 		
 			t = Turnosocia.objects.filter(socia_id=s.socia.id,fecha_inicio__lte=hora_reserva,fecha_fin__gte=hora_reserva,dia__nombre=dia)
 
@@ -446,33 +618,107 @@ class Buscasocia(JSONWebTokenAuthMixin, View):
 
 			if t.count()>0:
 
-				print 'Socia findinding..',s.socia.nombre,s.socia.numero_notificacion
+				print 'Socia encontrada..',s.socia.nombre,s.socia.numero_notificacion
 
-				ser = Servicio.objects.get(id=id_serv)
-				ser.socia_id=s.socia.id
-				ser.save()
+				if s.socia.numero_notificacion:
 
-				header = {"Content-Type": "application/json; charset=utf-8","Authorization": "Basic OGQyNTllMmUtMmY2Ny00ZGQxLWEzNWMtMjM5NTdlNjM0ZTc3"}
-				payload = {"app_id": "6d06ccb5-60c3-4a76-83d5-9363fbf6b40a","include_player_ids": [s.socia.numero_notificacion],"contents": {"en": "Tienes un nuevo servicio requerido"},"data":{'servicio': id_serv}}
-				req = requests.post("https://onesignal.com/api/v1/notifications", headers=header, data=json.dumps(payload))
-				print(req.status_code, req.reason)
+					ser = Servicio.objects.get(id=id_serv)
+					ser.socia_id=s.socia.id
+					ser.save()
+
+					header = {"Content-Type": "application/json; charset=utf-8","Authorization": "Basic OGQyNTllMmUtMmY2Ny00ZGQxLWEzNWMtMjM5NTdlNjM0ZTc3"}
+					payload = {"app_id": "6d06ccb5-60c3-4a76-83d5-9363fbf6b40a","include_player_ids": [s.socia.numero_notificacion],"contents": {"en": "Tienes un nuevo servicio requerido"},"data":{'servicio': id_serv}}
+					req = requests.post("https://onesignal.com/api/v1/notifications", headers=header, data=json.dumps(payload))
+					print(req.status_code, req.reason)
 
 
-				break
+					break
+
+			else:
+
+				subject, from_email, to = 'My Look Express', 'cotiza@hermes.pe', 'joelunmsm@gmail.com'
+
+				text_content = 'Existen socias para este pedido pero no esta disponibles en este horario porfavor solucionar: '
+
+				text_content= text_content+'http://estokealo.com:8000/admin/app/serviciopedido/?servicio__id__exact='+str(id_serv)
+
+				msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+
+
+				msg.send()
+
+
 
 		return HttpResponse(simplejson.dumps('cliente_id'), content_type="application/json")
 
 
 def categoria(request):
 
-	c= Categoria.objects.all().values('id','nombre','photo','icono').order_by('orden')
+	c= Categoria.objects.all().values('id','nombre','photo','icono','icono_seleccionado').order_by('orden')
+
+	for i in range(len(c)):
+
+		c[i]['check']=True
+
+
 
 	c= simplejson.dumps(ValuesQuerySetToDict(c))
 
 	return HttpResponse(c, content_type="application/json")
 
+@csrf_exempt
+def nuevasocia(request):
+
+	print 'entrando..'
+
+	if request.method=='POST':
+
+
+		cat = json.loads(request.body)['categoria']
+
+		soc = json.loads(request.body)['socia']
+
+
+
+
+
+		subject, from_email, to = 'My Look Express Nueva Socia', 'cotiza@hermes.pe', 'carloscano.e@gmail.com'
+		text_content = 'Un nueva socia '
+		
+
+		html_content = ''
+
+		for c in cat:
+
+			html_content = html_content + ' <br> '+c['nombre']
+
+		categoriastxt = html_content
+
+		titulo = 'Estimado Carlos se solicito una nueva socia con los siguientes datos :<br><br> '
+
+
+		nombre = 'Nombre: '+soc['nombre']+ ' <br>'
+		telefono = 'Telefono '+soc['telefono']+ ' <br>'
+		email ='Email '+soc['email']+'<br>'
+		direccion='Direccion '+soc['direccion']+' <br>'
+
+		html_content= titulo +nombre+telefono+email+direccion+ 'Categorias : <br> '+categoriastxt
+
+		msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+		#msg.attach_file('/var/www/hermes/out.pdf')
+		msg.attach_alternative(html_content, "text/html")
+		msg.send()
+
+
+	c= simplejson.dumps('67')
+
+	return HttpResponse(c, content_type="application/json")
+
+
 
 def detalledeservicio(request,id_servicio):
+
+	print 'aqui toy'
 
 	c= Servicio.objects.filter(id=id_servicio).values('id','cliente__nombre','dia__nombre','cliente__photo','socia__photo','socia__nombre','latitud','longitud')
 
@@ -482,7 +728,7 @@ def detalledeservicio(request,id_servicio):
 
 	for i in range(len(c)):
 
-		print 'c[i][id]',c[i]['id']
+		print 'latitud',c[i]['latitud']
 
 		c[i]['fecha_inicio']= Servicio.objects.get(id=c[i]['id']).fecha_inicio.strftime(fmt)
 
@@ -537,7 +783,7 @@ class Aceptarservicio(JSONWebTokenAuthMixin, View):
 
 def subcategoria(request,categoria):
 
-	c= Subcategoria.objects.filter(categoria_id=categoria).values('id','nombre','descripcion','precio')
+	c= Subcategoria.objects.filter(categoria_id=categoria).values('id','nombre','descripcion','precio','photo').order_by('orden')
 
 	for i in range(len(c)):
 
@@ -606,7 +852,7 @@ class Guardanotificacion(JSONWebTokenAuthMixin, View):
 					cli.save()
 
 
-				c= simplejson.dumps(servicio)
+				c= simplejson.dumps('ok')
 
 				return HttpResponse(c, content_type="application/json")
 
