@@ -666,6 +666,114 @@ def categoria(request):
 
 	return HttpResponse(c, content_type="application/json")
 
+
+def detalle(request,categoria):
+
+	c= Categoria.objects.filter(id=categoria).values('id','nombre','photo','icono','descripcion')
+
+
+	c= simplejson.dumps(ValuesQuerySetToDict(c))
+
+	return HttpResponse(c, content_type="application/json")
+
+
+def menu(request,id_menu):
+
+	c= Menu.objects.filter(id=id_menu).values('id','nombre','photo','icono','descripcion')
+
+
+	c= simplejson.dumps(ValuesQuerySetToDict(c))
+
+	return HttpResponse(c, content_type="application/json")
+
+
+
+@csrf_exempt
+def contacto(request):
+
+	print 'entrando..'
+
+	if request.method=='POST':
+
+		data = json.loads(request.body)['data']
+
+		descripcion = data['descripcion']
+
+		name=data['name']
+
+		email=data['email']
+
+		subject, from_email, to = 'Nuevo Contacto', 'cotiza@hermes.pe', 'tarrajeo@aol.com'
+		
+		text_content = 'Un nuevo contacto '
+
+		html_content = 'Email: '+ email +'<br>'+ 'Name:' + name +'<br>'+descripcion
+
+		msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+
+		msg.attach_alternative(html_content, "text/html")
+
+		msg.send()
+
+	c= simplejson.dumps('ok')
+
+	return HttpResponse(c, content_type="application/json")
+
+
+
+@csrf_exempt
+def help(request):
+
+	print 'entrando..'
+
+	if request.method=='POST':
+
+		data = json.loads(request.body)['data']
+
+		
+		town= data['town']
+
+		name=data['name']
+
+		cantidad=data['cantidad']
+
+		mensaje=data['mensaje']
+
+		transporte = data['transporte']
+
+		number=data['number']
+
+		experience = data['experience']
+
+		full_adress =data['full_adress']
+
+		descripcion = data['descripcion']
+
+		tools=data['tools']
+
+		email=data['email']
+
+
+		html_content='town :'+ town+'<br> name :'+ name+'<br>cantidad :'+ cantidad+'<br>mensaje :'+ mensaje+'<br>transporte :'+  transporte +'<br>number :'+ number+'<br>experience :'+  experience +'<br>full_adress :'+  full_adress +'<br>descripcion :'+ descripcion +'<br>tools :'+ tools+'<br>email :'+ email
+
+		subject, from_email, to = 'Un nueva help wanted', 'cotiza@hermes.pe', 'tarrajeo@aol.com'
+		
+		text_content = 'Un nueva help wanted '
+
+		msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+
+		msg.attach_alternative(html_content, "text/html")
+
+		msg.send()
+
+
+
+	c= simplejson.dumps('ok')
+
+	return HttpResponse(c, content_type="application/json")
+
+
+
 @csrf_exempt
 def nuevasocia(request):
 

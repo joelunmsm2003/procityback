@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse
 from django.contrib import admin
 
 
-admin.site.site_header = 'My Look Express'
+admin.site.site_header = 'Perfecto Remore'
 
 urlpatterns = [
 
@@ -17,6 +17,8 @@ urlpatterns = [
     url(r'^', admin.site.urls),
 
     url(r'^categoria/', 'app.views.categoria'),
+    url(r'^detalle/(\d+)', 'app.views.detalle'),
+    url(r'^menu/(\d+)', 'app.views.menu'),
     url(r'^distrito/', 'app.views.distrito'),
     url(r'^subcategoria/(\d+)', 'app.views.subcategoria'),
     url(r'^portadaphoto/', 'app.views.portadaphoto'),
@@ -39,6 +41,8 @@ urlpatterns = [
     url(r'^nuevasocia/', 'app.views.nuevasocia'),
     url(r'^envianotificacion/(\w+)/', 'app.views.envianotificacion'),
     url(r'^carganoti/(\w+)/(\d+)', 'app.views.carganoti'),
+    url(r'^contacto/', 'app.views.contacto'),
+    url(r'^help/', 'app.views.help'),
 
 
     

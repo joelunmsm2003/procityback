@@ -32,10 +32,27 @@ class Categoria(models.Model):
     orden = models.IntegerField(blank=True, null=True)
     icono = models.FileField(upload_to='static',blank=True, null=True)
     icono_seleccionado = models.FileField(upload_to='static',blank=True, null=True)
+    descripcion = models.CharField(max_length=1000,blank=True, null=True)
 
     class Meta:
         managed = True
-        verbose_name = '1. Categoria'
+        verbose_name = 'Categoria'
+
+    def __unicode__(self):
+        return self.nombre
+
+
+class Menu(models.Model):
+    nombre = models.CharField(max_length=1000)
+    photo = models.FileField(upload_to='static',blank=True, null=True)
+    orden = models.IntegerField(blank=True, null=True)
+    icono = models.FileField(upload_to='static',blank=True, null=True)
+    icono_seleccionado = models.FileField(upload_to='static',blank=True, null=True)
+    descripcion = models.TextField(max_length=1000,blank=True, null=True)
+
+    class Meta:
+        managed = True
+        verbose_name = 'Menu'
 
     def __unicode__(self):
         return self.nombre
@@ -50,7 +67,7 @@ class Subcategoria(models.Model):
 
     class Meta:
         managed = True
-        verbose_name = '2. Subcategoria'
+        verbose_name = 'Subcategoria'
 
     def __unicode__(self):
         return self.nombre
